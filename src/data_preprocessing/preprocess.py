@@ -22,6 +22,67 @@ def _strip_and_lower_series(series):
     return out_series
 
 
+def _url_parse_(dataframe, url_col):
+    """
+    Uses urlparse to validate URLs. If urls  have their scheme, netloc, and path parsed and stored in seperate columns
+
+
+    requires:
+        dataframe: Pandas Dataframe containing url column
+        url_col: column containing urls
+
+    output:
+        dataframe with urlparse object, scheme, netloc, and path columns
+
+    """
+
+    # strip and lowercase urls
+    dataframe['url_col'] = _strip_and_lower_series(dataframe['url_col'])
+
+    # create urlparse object
+    dataframe['urlparse'] = dataframe[url_col].apply(lambda x: urlparse(x))
+
+    # pull out attributes
+    dataframe['scheme'] = dataframe['urlparse'].apply(lambda x: x.scheme)
+    dataframe['netloc'] = dataframe['urlparse'].apply(lambda x: x.netloc)
+    dataframe['path'] = dataframe['urlparse'].apply(lambda x: x.path)
+
+    # replac
+    for col in ['scheme', 'netloc', 'path']:
+        dataframe[col] = dataframe[col].replace('', np.nan)
+
+    return dataframe
+
+
+def _url_fix_(post_url_parse_df, url_col):
+    """
+    Takes a dataframe with parsed URLs and corrects incorrectly parsed urls
+
+    requires: 
+        post_url_parse_df: dataframe with parsed urls
+        url_col: column containing urls
+
+    output:
+       processed_dataframe:  dataframe with fixed urls
+    """
+
+    # filter out valid urls
+
+    valid_rating_urls = post_url_parse_df[~post_url_parse_df['scheme'].isnull(
+    )]
+    invalid_rating_urls = post_url_parse_df[post_url_parse_df['scheme'].isnull(
+    )]
+
+    invalid_rating_urls[post_url_parse_df] = invalid_rating_urls[post_url_parse_df].str.replace(
+        'www.', '')
+    invalid_rating_urls[post_url_parse_df] = 'https://www.' + \
+        invalid_rating_urls[post_url_parse_df]
+
+    processed_dataframe = pd.concat([invalid_rating_urls, valid_rating_urls])
+
+    return processed_dataframe
+
+
 def _keep_frequent_(series, count):
     """
     A function used to identify frequently occuring values. If a value doesn't occur >= count times then it is not included in the output.
@@ -98,3 +159,15 @@ class whisky_archive_processor:
             '/100', '')
         self.whiskey_archive['Reviewer Rating'] = self.whiskey_archive['Reviewer Rating'].astype(
             float)
+
+        # Validate URLs
+        self.whisky_archive = _url_parse_(
+            dataframe=self.whisky_archive, url_col='Link To Reddit Review')
+        self.whisky_archive = _url_fix_(
+            post_url_parse_df=self.whisky_archive, url_col='Link To Reddit Review')
+
+    def get_dataframe(self):
+        """
+        Returns processed dataframe.
+        """
+        return self.whisky_archive
