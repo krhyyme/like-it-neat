@@ -39,7 +39,7 @@ def _url_parse_(dataframe, url_col):
     """
 
     # strip and lowercase urls
-    dataframe['url_col'] = _strip_and_lower_series(dataframe['url_col'])
+    dataframe[url_col] = _strip_and_lower_series(dataframe[url_col])
 
     # create urlparse object
     dataframe['urlparse'] = dataframe[url_col].apply(lambda x: urlparse(x))
@@ -102,7 +102,7 @@ def _keep_frequent_(series, count):
     return v_counts.index
 
 
-def _scrape_reddit_reviews_(pass_loc='pass_info.json', dataframe):
+def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
     """
     This function uses the prawl library to access the reddit API and scrape the text from whisky reviell iterate through each row in the preprocessed whisky archive dataframe and pull the 
     top level comments in the review url if the comment author is the review author.
@@ -194,11 +194,11 @@ class whisky_archive_processor:
         # convert timestamps to datetime
         # coerce error as missing value (NaT)
         self.whisky_archive['Timestamp'] = pd.to_datetime(
-            self.whiskey_archive['Timestamp'], error='coerce')
+            self.whisky_archive['Timestamp'], errors='coerce')
 
         # strip spaces and lowercase characters
-        self.whiskey_archive['Whisky Region or Style'] = _strip_and_lower_series(
-            self.whiskey_archive['Whisky Region or Style'])
+        self.whisky_archive['Whisky Region or Style'] = _strip_and_lower_series(
+            self.whisky_archive['Whisky Region or Style'])
 
         # Alternate spellings of whisky styles are replaced and style are prioritized over location.
         replace_dict = {'bourbon/america': 'bourbon',
@@ -207,7 +207,7 @@ class whisky_archive_processor:
                         'borubon': 'bourbon',
                         'highlands': 'highland'}
 
-        self.whiskey_archive['Whisky Region or Style'] = self.whiskey_archive['Whisky Region or Style'].replace(
+        self.whisky_archive['Whisky Region or Style'] = self.whisky_archive['Whisky Region or Style'].replace(
             replace_dict)
 
         # Only include styles with at least a 100 reviews
@@ -219,17 +219,17 @@ class whisky_archive_processor:
             keep_styles)]
 
         # strip spaces from reviewer names
-        whisky_archive["Reviewer's Reddit Username"] = whisky_archive["Reviewer's Reddit Username"].strip()
+        self.whisky_archive["Reviewer's Reddit Username"] = self.whisky_archive["Reviewer's Reddit Username"].str.strip()
 
        # process rating data. strip spaces and lowercase charcters
        # Some users inputed there scores with a divisor. Those are being removed so only the numerator remains
        # convert ratings to float
         self.whisky_archive['Reviewer Rating'] = _strip_and_lower_series(
             self.whisky_archive['Reviewer Rating'])
-        self.whiskey_archive['Reviewer Rating'] = self.whiskey_archive['Reviewer Rating'].str.replace(
+        self.whisky_archive['Reviewer Rating'] = self.whisky_archive['Reviewer Rating'].str.replace(
             '/100', '')
-        self.whiskey_archive['Reviewer Rating'] = self.whiskey_archive['Reviewer Rating'].astype(
-            float)
+        self.whisky_archive['Reviewer Rating'] = self.whisky_archive['Reviewer Rating'].astype(
+            float, errors='ignore')
 
         # Validate URLs
         self.whisky_archive = _url_parse_(
