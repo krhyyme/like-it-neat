@@ -2,8 +2,10 @@
 
 import pandas as pd
 from urllib.parse import urlparse
+import json
 import numpy as np
 import praw
+from praw.models import MoreComments
 import time
 
 
@@ -75,10 +77,10 @@ def _url_fix_(post_url_parse_df, url_col):
     invalid_rating_urls = post_url_parse_df[post_url_parse_df['scheme'].isnull(
     )]
 
-    invalid_rating_urls[post_url_parse_df] = invalid_rating_urls[post_url_parse_df].str.replace(
+    invalid_rating_urls[url_col] = invalid_rating_urls[url_col].str.replace(
         'www.', '')
-    invalid_rating_urls[post_url_parse_df] = 'https://www.' + \
-        invalid_rating_urls[post_url_parse_df]
+    invalid_rating_urls[url_col] = 'https://www.' + \
+        invalid_rating_urls[url_col]
 
     processed_dataframe = pd.concat([invalid_rating_urls, valid_rating_urls])
 
@@ -162,10 +164,10 @@ def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
             max_length_loc = comment_lengths.index(max(comment_lengths))
             reviews.append(review_top_level_comments[max_length_loc])
 
-        # store values in dataframe
-        dataframe['review_text'] = reviews
+    # store values in dataframe
+    dataframe['review_text'] = reviews
 
-        return dataframe
+    return dataframe
 
 
 class whisky_archive_processor:
