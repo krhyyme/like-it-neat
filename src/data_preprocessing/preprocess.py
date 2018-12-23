@@ -110,7 +110,7 @@ def _scrape_reddit_reviews_(pass_loc='pass_info.json', dataframe):
         pass_loc: Reddit Application Data
         dataframe: Whisky Archive Dataframe
     output:
-        Whisky Archive Datafranme with comment column 
+        Whisky Archive Dataframe with comment column 
     """
 
     # Load  authentication information
@@ -236,6 +236,11 @@ class whisky_archive_processor:
             dataframe=self.whisky_archive, url_col='Link To Reddit Review')
         self.whisky_archive = _url_fix_(
             post_url_parse_df=self.whisky_archive, url_col='Link To Reddit Review')
+
+    def scrape_reviews(self):
+
+        self.whisky_archive = _scrape_reddit_reviews_(
+            pass_loc='pass_info.json', dataframe=self.whisky_archive)
 
     def get_dataframe(self):
         """
