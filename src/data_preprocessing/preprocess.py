@@ -6,7 +6,8 @@ import json
 import numpy as np
 import praw
 from praw.models import MoreComments
-import time
+from tqdm import tqdm
+import os
 
 
 def _strip_and_lower_series(series):
@@ -129,15 +130,17 @@ def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
     # array of revies added to dataframe
     reviews = []
 
-    for index, row in dataframe.iterrows():
-        time.sleep(5)
-
+    for index, row in tqdm(dataframe.iterrows()):
         # Pull review link and user
         lnk = row['Link To Reddit Review']
         usr = row["Reviewer's Reddit Username"]
 
         # Review Submission
-        submission = reddit.submission(url=lnk)
+        # If submission link is not valid return np.nan
+        try:
+            submission = reddit.submission(url=lnk)
+        except:
+            reviews.append(np.nan)
 
         # Here we pull all top level comments for the review usr
         review_top_level_comments = []
@@ -249,3 +252,13 @@ class whisky_archive_processor:
         Returns processed dataframe.
         """
         return self.whisky_archive
+
+
+if __name__ == "__main__":
+    archive = whisky_archive_processor()
+    archive.process(
+        file_loc='../../data/raw_data/Reddit Whisky Network Review Archive.xlsx')
+    archive.scrape_reviews()
+    out_df = archive.get_dataframe()
+    os.chdir('../../data/interim_data/')
+    out_df.to_csv('whisky_archive_scraped_reviews.csv', sep='|')
