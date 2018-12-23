@@ -3,6 +3,8 @@
 import pandas as pd
 from urllib.parse import urlparse
 import numpy as np
+import praw
+import time
 
 
 def _strip_and_lower_series(series):
@@ -100,6 +102,72 @@ def _keep_frequent_(series, count):
     return v_counts.index
 
 
+def _scrape_reddit_reviews_(pass_loc='pass_info.json', dataframe):
+    """
+    This function uses the prawl library to access the reddit API and scrape the text from whisky reviell iterate through each row in the preprocessed whisky archive dataframe and pull the 
+    top level comments in the review url if the comment author is the review author.
+    requires:
+        pass_loc: Reddit Application Data
+        dataframe: Whisky Archive Dataframe
+    output:
+        Whisky Archive Datafranme with comment column 
+    """
+
+    # Load  authentication information
+    with open('pass_info.json', 'r') as f:
+        pass_info = json.load(f)
+
+    # Intialize Reddit instance
+    reddit = praw.Reddit(client_id=pass_info['client_id'],
+                         client_secret=pass_info['client_secret'],
+                         password=pass_info['password'],
+                         username=pass_info['username'],
+                         user_agent='whisky_reddit')
+
+    # array of revies added to dataframe
+    reviews = []
+
+    for index, row in dataframe.iterrows():
+        time.sleep(5)
+
+        # Pull review link and user
+        lnk = row['Link To Reddit Review']
+        usr = row["Reviewer's Reddit Username"]
+
+        # Review Submission
+        submission = reddit.submission(url=lnk)
+
+        # Here we pull all top level comments for the review usr
+        review_top_level_comments = []
+
+        #  Look through comment tree for top level comments made by reviewer
+        for top_level_comment in submission.comments:
+            if isinstance(top_level_comment, MoreComments):
+                continue
+            if (top_level_comment.author == usr):
+                review_top_level_comments.append(top_level_comment.body)
+
+        n_comments = len(review_top_level_comments)
+
+        # If no comments found pass missing value
+        # elif only one comment found then keep that comment
+        # else: keep longest length comment
+        if not review_top_level_comments:
+            reviews.append(np.nan)
+        elif n_comments == 1:
+            reviews.append(review_top_level_comments[0])
+        else:
+            comment_lengths = [len(comment)
+                               for comment in review_top_level_comments]
+            max_length_loc = comment_lengths.index(max(comment_lengths))
+            reviews.append(review_top_level_comments[max_length_loc])
+
+        # store values in dataframe
+        dataframe['review_text'] = reviews
+
+        return dataframe
+
+
 class whisky_archive_processor:
     """
     Method to preprocess whisky_archive data set for downstream use.
@@ -149,6 +217,9 @@ class whisky_archive_processor:
         # Only keep styles in keep_styles array
         self.whisky_archive = self.whisky_archive[self.whisky_archive['Whisky Region or Style'].isin(
             keep_styles)]
+
+        # strip spaces from reviewer names
+        whisky_archive["Reviewer's Reddit Username"] = whisky_archive["Reviewer's Reddit Username"].strip()
 
        # process rating data. strip spaces and lowercase charcters
        # Some users inputed there scores with a divisor. Those are being removed so only the numerator remains
