@@ -129,28 +129,34 @@ def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
 
     # array of revies added to dataframe
     reviews = []
-
-    for index, row in tqdm(dataframe.iterrows()):
+    n_rows = dataframe.shape[0]
+    i = 0
+    for index, row in dataframe.iterrows():
         # Pull review link and user
+        i += 1
+        print(i)
         lnk = row['Link To Reddit Review']
         usr = row["Reviewer's Reddit Username"]
-
-        # Review Submission
-        # If submission link is not valid return np.nan
-        try:
-            submission = reddit.submission(url=lnk)
-        except:
-            reviews.append(np.nan)
 
         # Here we pull all top level comments for the review usr
         review_top_level_comments = []
 
         #  Look through comment tree for top level comments made by reviewer
-        for top_level_comment in submission.comments:
-            if isinstance(top_level_comment, MoreComments):
-                continue
-            if (top_level_comment.author == usr):
-                review_top_level_comments.append(top_level_comment.body)
+        # Try statement is used since some submissions maybe from banned subreddits "r/scotchswap"
+        try:
+            # Identify submission from URL
+            submission = reddit.submission(url=lnk)
+
+            # Look through comment tree for top level comments made by reviewer
+            for top_level_comment in submission.comments:
+                # More comments object represents "load more comments" link in thread
+                # Loop past MoreComments to load more more comments
+                if isinstance(top_level_comment, MoreComments):
+                    continue
+                if (top_level_comment.author == usr):
+                    review_top_level_comments.append(top_level_comment.body)
+        except:
+            pass
 
         n_comments = len(review_top_level_comments)
 
@@ -241,6 +247,10 @@ class whisky_archive_processor:
             dataframe=self.whisky_archive, url_col='Link To Reddit Review')
         self.whisky_archive = _url_fix_(
             post_url_parse_df=self.whisky_archive, url_col='Link To Reddit Review')
+
+        # URL must point to reddit.com
+        self.whisky_archive = self.whisky_archive[self.whisky_archive['Link To Reddit Review'].str.contains(
+            'reddit.com')]
 
     def scrape_reviews(self):
 
