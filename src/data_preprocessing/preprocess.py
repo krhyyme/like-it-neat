@@ -131,7 +131,7 @@ def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
     reviews = []
     n_rows = dataframe.shape[0]
     i = 0
-    for index, row in dataframe.iterrows():
+    for index, row in tqdm(dataframe.iterrows()):
         # Pull review link and user
         i += 1
         print(i)
