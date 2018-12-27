@@ -150,7 +150,8 @@ def _scrape_reddit_reviews_(dataframe, pass_loc='pass_info.json'):
                 # Loop past MoreComments to load more more comments
                 if isinstance(top_level_comment, MoreComments):
                     continue
-                if (top_level_comment.author == usr):
+                # Pull reviews from deleted authors
+                if (top_level_comment.author == usr) or (top_level_comment.author is None):
                     review_top_level_comments.append(top_level_comment.body)
         except:
             pass
