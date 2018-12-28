@@ -7,14 +7,10 @@ import nltk
 from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
 
-nltk_path = '$HOME/nltk_data'
-google_vec_file = '$HOME/nltk_data/GoogleNews-vectors-negative300.bin.gz'
-
-
 def get_wordnet_pos(treebank_tag):
     """Convert the part-of-speech naming scheme
-       from the nltk default to format
-       recognized by the WordNet lemmatizer"""
+       from the nltk default to WordNet lemmatizer 
+       format"""
 
     if treebank_tag.startswith('J'):
         return wordnet.ADJ
