@@ -7,12 +7,13 @@ import nltk
 from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
 
-nltk_path='$HOME/nltk_data'
+nltk_path = '$HOME/nltk_data'
 google_vec_file = '$HOME/nltk_data/GoogleNews-vectors-negative300.bin.gz'
+
 
 def get_wordnet_pos(treebank_tag):
     """Convert the part-of-speech naming scheme
-       from the nltk default to that which is
+       from the nltk default to format
        recognized by the WordNet lemmatizer"""
 
     if treebank_tag.startswith('J'):
@@ -51,7 +52,7 @@ def preprocess_reviews(text_series, nltk_path=None):
     text_series = text_series.str.lower()
 
     # remove punctuation
-    text_series = text_series.str.replace('[^\w\s]','')
+    text_series = text_series.str.replace('[^\w\s]', '')
 
     # replace all alphanumeric characters
     text_series = text_series.str.replace("\w*\d\w*", '')
@@ -61,16 +62,19 @@ def preprocess_reviews(text_series, nltk_path=None):
 
     # remove stop words
     sw_filter = stopwords.words('english')
-    text_series = text_series.apply( lambda x : [word for word in x if word not in sw_filter])
+    text_series = text_series.apply(
+        lambda x: [word for word in x if word not in sw_filter])
 
     # tag parts of speech
     processed_series = text_series.tolist()
     processed_series = nltk.pos_tag_sents(processed_series)
+    processed_series = pd.Series(processed_series)
+    processed_series = processed_series.apply(
+        lambda x: [(y[0], get_wordnet_pos(y[1])) for y in x])
 
-    # lemmatizer
     # lemmatization
     lemmatizer = WordNetLemmatizer()
-    lem_lambda = lambda x: [lemmatizer.lemmatize(*y) for y in x]
-    data = data.map(lem_lambda)
+    processed_series = processed_series.apply(
+        lambda x: [lemmatizer.lemmatize(*y) for y in x])
 
-    return processed_series
+    return processed_series.apply(lambda x: ' '.join(x))
